@@ -9,103 +9,119 @@
         // ====================================================================
         // LATAM Pulse — headless execution environment
         // Called by AI Edge Gallery via window.ai_edge_gallery_get_result
-        // Source: Google News RSS (no API key required)
+        // Source: GDELT Doc 2.0 API (no API key, CORS enabled)
         // ====================================================================
 
+        const FETCH_TIMEOUT_MS = 12000;
+
         const TOPIC_QUERIES = {
-            business:   "negocios OR economía OR business",
-            technology: "tecnología OR technology OR software OR AI",
-            startups:   "startup OR founder OR fundraising OR ronda",
-            fintech:    "fintech OR neobank OR pagos OR payments",
-            general:    "LATAM OR Latinoamérica"
+            business:   '(negocios OR economia OR business OR markets OR economy)',
+            technology: '(tecnologia OR technology OR software OR "inteligencia artificial" OR "artificial intelligence")',
+            startups:   '(startup OR fundraising OR "venture capital" OR "ronda de inversion" OR "capital de riesgo")',
+            fintech:    '(fintech OR neobank OR "pagos digitales" OR "banca digital" OR "digital payments")',
+            general:    '(LATAM OR Latinoamerica OR "America Latina")'
         };
 
+        // GDELT uses FIPS 10-4 country codes, which differ from ISO 3166-1
+        // for some countries (notably Chile: ISO=CL, FIPS=CI).
         const COUNTRIES = {
-            mx:  { name: "México",    gl: "MX", ceidLang: "es-419" },
-            br:  { name: "Brasil",    gl: "BR", ceidLang: "pt-BR"  },
-            ar:  { name: "Argentina", gl: "AR", ceidLang: "es-419" },
-            co:  { name: "Colombia",  gl: "CO", ceidLang: "es-419" },
-            cl:  { name: "Chile",     gl: "CL", ceidLang: "es-419" },
-            pe:  { name: "Perú",      gl: "PE", ceidLang: "es-419" },
-            all: { name: "LATAM",     gl: "US", ceidLang: "es-419" }
+            mx:  { name: "México",    fips: "MX" },
+            br:  { name: "Brasil",    fips: "BR" },
+            ar:  { name: "Argentina", fips: "AR" },
+            co:  { name: "Colombia",  fips: "CO" },
+            cl:  { name: "Chile",     fips: "CI" },
+            pe:  { name: "Perú",      fips: "PE" },
+            all: { name: "LATAM",     fips: null }
         };
 
-        function buildQuery(topic, country) {
+        const ALL_LATAM_FIPS = ["MX", "BR", "AR", "CO", "CI", "PE"];
+
+        function buildQuery(topic, country, language) {
             const base = TOPIC_QUERIES[topic] || TOPIC_QUERIES.general;
-            if (country === "all") {
-                return `(${base}) (México OR Brasil OR Argentina OR Colombia OR Chile OR Perú OR LATAM)`;
-            }
-            return `(${base}) ${COUNTRIES[country].name}`;
+            const langPart = language === "en" ? "sourcelang:english" : "sourcelang:spanish";
+            const countryPart = country === "all"
+                ? "(" + ALL_LATAM_FIPS.map(c => `sourcecountry:${c}`).join(" OR ") + ")"
+                : `sourcecountry:${(COUNTRIES[country] || COUNTRIES.all).fips}`;
+            return `${base} ${countryPart} ${langPart}`;
         }
 
-        function buildRssUrl(topic, country, language) {
-            const countryInfo = COUNTRIES[country] || COUNTRIES.all;
-            const hl = language === "en" ? "en-US" : countryInfo.ceidLang;
-            const ceid = `${countryInfo.gl}:${hl}`;
+        function buildApiUrl(topic, country, language) {
             const params = new URLSearchParams({
-                q: buildQuery(topic, country),
-                hl,
-                gl: countryInfo.gl,
-                ceid
+                query:      buildQuery(topic, country, language),
+                mode:       "ArtList",
+                format:     "json",
+                maxrecords: "20",
+                sort:       "DateDesc",
+                timespan:   "3d"
             });
-            return `https://news.google.com/rss/search?${params.toString()}`;
+            return `https://api.gdeltproject.org/api/v2/doc/doc?${params.toString()}`;
         }
 
-        function stripHtml(html) {
-            const tmp = document.createElement("div");
-            tmp.innerHTML = html || "";
-            return (tmp.textContent || tmp.innerText || "").trim();
+        // GDELT seendate format: YYYYMMDDTHHMMSSZ -> ISO 8601
+        function parseGdeltDate(seendate) {
+            const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(seendate || "");
+            return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z` : "";
         }
 
-        function parseItemTitle(rawTitle) {
-            // Google News appends " - Source" to titles
-            const idx = rawTitle.lastIndexOf(" - ");
-            if (idx > 0 && idx > rawTitle.length - 60) {
-                return {
-                    title: rawTitle.slice(0, idx).trim(),
-                    source: rawTitle.slice(idx + 3).trim()
-                };
-            }
-            return { title: rawTitle.trim(), source: "Google News" };
-        }
-
-        function parseRss(xmlText) {
-            const doc = new DOMParser().parseFromString(xmlText, "application/xml");
-            const parseError = doc.querySelector("parsererror");
-            if (parseError) {
-                throw new Error("Failed to parse Google News RSS feed");
-            }
-            const items = Array.from(doc.querySelectorAll("item"));
-            return items.map(item => {
-                const rawTitle = item.querySelector("title")?.textContent || "";
-                const { title, source: titleSource } = parseItemTitle(rawTitle);
-                const sourceEl = item.querySelector("source");
-                const source = sourceEl?.textContent?.trim() || titleSource;
-                const link = item.querySelector("link")?.textContent?.trim() || "";
-                const pubDate = item.querySelector("pubDate")?.textContent?.trim() || "";
-                const descRaw = item.querySelector("description")?.textContent || "";
-                return {
+        function normalizeArticles(json) {
+            const raw = (json && Array.isArray(json.articles)) ? json.articles : [];
+            const seen = new Set();
+            const out = [];
+            for (const a of raw) {
+                const title = (a.title || "").trim();
+                const url   = (a.url   || "").trim();
+                if (!title || !url) continue;
+                const key = title.toLowerCase();
+                if (seen.has(key)) continue;
+                seen.add(key);
+                out.push({
                     title,
-                    source,
-                    description: stripHtml(descRaw).slice(0, 180),
-                    url: link,
-                    publishedAt: pubDate ? new Date(pubDate).toISOString() : "",
-                    image: null
-                };
-            });
+                    source: (a.domain || "GDELT").replace(/^www\./, ""),
+                    description: "",
+                    url,
+                    publishedAt: parseGdeltDate(a.seendate),
+                    image: a.socialimage || null
+                });
+            }
+            return out;
         }
 
-        async function fetchNews(topic, country, language) {
-            const url = buildRssUrl(topic, country, language);
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`Google News returned ${response.status}: ${response.statusText}`);
+        async function fetchOnce(url) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+            try {
+                const response = await fetch(url, { signal: controller.signal });
+                const text = await response.text();
+                return { status: response.status, text };
+            } catch (e) {
+                if (e.name === "AbortError") {
+                    throw new Error(`Timed out after ${FETCH_TIMEOUT_MS / 1000}s`);
+                }
+                throw e;
+            } finally {
+                clearTimeout(timeoutId);
             }
-            const xmlText = await response.text();
-            const articles = parseRss(xmlText)
-                .filter(a => a.title && a.url)
-                .slice(0, 6);
-            return articles;
+        }
+
+        // GDELT occasionally returns 429/5xx on cold paths; one short retry
+        // makes the skill noticeably more reliable in the field.
+        async function fetchNews(topic, country, language) {
+            const url = buildApiUrl(topic, country, language);
+            let res = await fetchOnce(url);
+            if (res.status === 429 || res.status >= 500) {
+                await new Promise(r => setTimeout(r, 1200));
+                res = await fetchOnce(url);
+            }
+            if (res.status !== 200) {
+                throw new Error(`GDELT returned HTTP ${res.status}`);
+            }
+            let json;
+            try {
+                json = JSON.parse(res.text);
+            } catch (_) {
+                throw new Error("GDELT returned an unexpected payload");
+            }
+            return normalizeArticles(json).slice(0, 6);
         }
 
         function buildWebviewURL(payload) {

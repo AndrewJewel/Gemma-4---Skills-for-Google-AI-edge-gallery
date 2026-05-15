@@ -8,8 +8,9 @@ metadata:
 # LATAM Pulse
 
 A real-time business and tech news skill focused on Latin America.
-Pulls fresh headlines from Google News RSS, filters them by topic and region,
-and renders an interactive, responsive briefing card directly in the chat.
+Pulls fresh headlines from the GDELT Project (open news index), filters
+them by topic and region, and renders an interactive, responsive briefing
+card directly in the chat.
 
 No API key required.
 
