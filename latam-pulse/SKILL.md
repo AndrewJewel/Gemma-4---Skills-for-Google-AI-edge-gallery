@@ -3,15 +3,15 @@ name: latam-pulse
 description: Fetches and summarizes the latest business, tech, and startup news from Latin America in real time. Use this skill whenever the user asks about current LATAM news, mercados latinoamericanos, startups en LATAM, business headlines, latest tech news, or says things like "qué está pasando en LATAM", "noticias de negocios", "últimas noticias tech", "what's happening in Mexico/Brazil/Argentina/Colombia", or wants a market briefing. Returns an interactive responsive card with the top headlines.
 metadata:
   homepage: https://github.com/google-ai-edge/gallery/discussions/categories/skills
-  require-secret: true
-  require-secret-description: Get a free NewsAPI key at https://newsapi.org/register and paste your API key here.
 ---
 
 # LATAM Pulse
 
 A real-time business and tech news skill focused on Latin America.
-Pulls fresh headlines from NewsAPI, filters them by topic and region,
+Pulls fresh headlines from Google News RSS, filters them by topic and region,
 and renders an interactive, responsive briefing card directly in the chat.
+
+No API key required.
 
 Built for entrepreneurs, founders, and operators who need to stay current
 on LATAM markets without leaving their phone.
