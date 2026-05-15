@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>LATAM Pulse</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-0: #0a0a0a;
+            --bg-1: #131313;
+            --bg-2: #1c1c1c;
+            --ink: #f5f1ea;
+            --ink-dim: #a8a299;
+            --ink-faint: #6b665e;
+            --accent: #ff5b1f;
+            --accent-glow: rgba(255, 91, 31, 0.15);
+            --line: rgba(245, 241, 234, 0.08);
+            --line-strong: rgba(245, 241, 234, 0.16);
+            --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            background: var(--bg-0); color: var(--ink);
+            font-family: "Inter Tight", -apple-system, sans-serif;
+            min-height: 100vh; overflow-x: hidden;
+            font-feature-settings: "ss01", "cv11";
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0;
+            background: var(--grain); opacity: 0.06;
+            pointer-events: none; mix-blend-mode: overlay; z-index: 100;
+        }
+        .container { padding: clamp(16px, 5vw, 28px); max-width: 720px; margin: 0 auto; }
+        .header {
+            display: flex; align-items: baseline; justify-content: space-between;
+            padding-bottom: 14px; border-bottom: 1px solid var(--line);
+            margin-bottom: 24px;
+            animation: slideDown 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .brand { display: flex; align-items: baseline; gap: 10px; }
+        .brand-mark {
+            width: 8px; height: 8px; background: var(--accent); border-radius: 50%;
+            box-shadow: 0 0 16px var(--accent-glow);
+            animation: pulse 2s ease-in-out infinite;
+            transform: translateY(-1px);
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: translateY(-1px) scale(1); }
+            50%      { opacity: 0.5; transform: translateY(-1px) scale(0.85); }
+        }
+        .brand-text {
+            font-family: "Fraunces", serif; font-weight: 800;
+            font-size: clamp(20px, 5.5vw, 26px);
+            letter-spacing: -0.02em; font-style: italic;
+        }
+        .meta {
+            font-family: "JetBrains Mono", monospace;
+            font-size: 10px; letter-spacing: 0.15em;
+            color: var(--ink-faint); text-transform: uppercase;
+        }
+        .filters {
+            display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px;
+            animation: slideDown 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s both;
+        }
+        .pill {
+            font-family: "JetBrains Mono", monospace;
+            font-size: 10px; letter-spacing: 0.12em;
+            padding: 6px 12px; border: 1px solid var(--line-strong);
+            border-radius: 100px; color: var(--ink-dim);
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(8px);
+        }
+        .pill.active {
+            color: var(--bg-0); background: var(--accent);
+            border-color: var(--accent); font-weight: 600;
+        }
+        .section-label {
+            display: flex; align-items: center; gap: 12px;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 11px; letter-spacing: 0.18em;
+            color: var(--ink-faint); text-transform: uppercase;
+            margin-bottom: 20px;
+            animation: slideDown 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s both;
+        }
+        .section-label::after {
+            content: ""; flex: 1; height: 1px; background: var(--line);
+        }
+        .articles { display: flex; flex-direction: column; gap: 0; }
+        .article {
+            display: grid; grid-template-columns: 1fr; gap: 14px;
+            padding: 22px 0; border-bottom: 1px solid var(--line);
+            cursor: pointer; transition: padding 0.3s ease;
+            opacity: 0;
+            animation: slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            position: relative; text-decoration: none; color: inherit;
+        }
+        .article:nth-child(1) { animation-delay: 0.25s; }
+        .article:nth-child(2) { animation-delay: 0.32s; }
+        .article:nth-child(3) { animation-delay: 0.39s; }
+        .article:nth-child(4) { animation-delay: 0.46s; }
+        .article:nth-child(5) { animation-delay: 0.53s; }
+        .article:nth-child(6) { animation-delay: 0.60s; }
+        .article:first-child { padding-top: 8px; }
+        .article:last-child { border-bottom: none; }
+        .article:active { padding-left: 8px; }
+        .article-meta {
+            display: flex; align-items: center; gap: 10px;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 10px; letter-spacing: 0.1em;
+            color: var(--ink-faint); text-transform: uppercase;
+        }
+        .article-source { color: var(--accent); font-weight: 500; }
+        .article-dot {
+            width: 3px; height: 3px; background: var(--ink-faint); border-radius: 50%;
+        }
+        .article-title {
+            font-family: "Fraunces", serif; font-weight: 600;
+            font-size: clamp(17px, 4.5vw, 21px);
+            line-height: 1.25; letter-spacing: -0.015em;
+            color: var(--ink);
+        }
+        .article-desc {
+            font-size: 13px; line-height: 1.55; color: var(--ink-dim);
+            display: -webkit-box; -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .article-arrow {
+            position: absolute; top: 22px; right: 0;
+            font-size: 14px; color: var(--ink-faint);
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+        .article:hover .article-arrow, .article:active .article-arrow {
+            color: var(--accent); transform: translate(4px, -4px);
+        }
+        .footer {
+            margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line);
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 9px; letter-spacing: 0.15em;
+            color: var(--ink-faint); text-transform: uppercase;
+            animation: fadeIn 0.8s ease 0.7s both;
+        }
+        .footer-mark { display: flex; align-items: center; gap: 6px; }
+        .footer-mark::before { content: "◆"; color: var(--accent); }
+        .empty { padding: 60px 20px; text-align: center; color: var(--ink-dim); }
+        .empty-mark {
+            font-family: "Fraunces", serif; font-size: 48px;
+            color: var(--accent); font-style: italic; margin-bottom: 16px;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        @media (min-width: 600px) {
+            .article { grid-template-columns: 80px 1fr; gap: 24px; }
+            .article-meta {
+                flex-direction: column; align-items: flex-start;
+                gap: 4px; padding-top: 4px;
+            }
+            .article-meta .article-dot { display: none; }
+        }
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-0: #f5f1ea; --bg-1: #ffffff; --bg-2: #efe9df;
+                --ink: #1a1a1a; --ink-dim: #4a4a4a; --ink-faint: #8a8580;
+                --line: rgba(26, 26, 26, 0.08);
+                --line-strong: rgba(26, 26, 26, 0.16);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="brand">
+                <div class="brand-mark"></div>
+                <div class="brand-text">LATAM Pulse</div>
+            </div>
+            <div class="meta" id="timestamp">—</div>
+        </header>
+        <div class="filters" id="filters"></div>
+        <div class="section-label" id="section-label">Top Stories</div>
+        <main class="articles" id="articles"></main>
+        <footer class="footer">
+            <div class="footer-mark">On-device · Gemma 4</div>
+            <div>NewsAPI</div>
+        </footer>
+    </div>
+    <script>
+        function getData() {
+            const params = new URLSearchParams(window.location.search);
+            const raw = params.get("data");
+            if (!raw) return null;
+            try { return JSON.parse(decodeURIComponent(raw)); }
+            catch (e) { console.error("Failed to parse data:", e); return null; }
+        }
+        function timeAgo(iso, lang) {
+            const then = new Date(iso);
+            const now = new Date();
+            const diffMin = Math.floor((now - then) / 60000);
+            if (lang === "es") {
+                if (diffMin < 60)   return `Hace ${diffMin}m`;
+                if (diffMin < 1440) return `Hace ${Math.floor(diffMin / 60)}h`;
+                return `Hace ${Math.floor(diffMin / 1440)}d`;
+            }
+            if (diffMin < 60)   return `${diffMin}m ago`;
+            if (diffMin < 1440) return `${Math.floor(diffMin / 60)}h ago`;
+            return `${Math.floor(diffMin / 1440)}d ago`;
+        }
+        function formatTimestamp(iso, lang) {
+            const d = new Date(iso);
+            const dateStr = d.toLocaleDateString(lang === "es" ? "es-MX" : "en-US", {
+                day: "2-digit", month: "short"
+            });
+            const timeStr = d.toLocaleTimeString(lang === "es" ? "es-MX" : "en-US", {
+                hour: "2-digit", minute: "2-digit", hour12: false
+            });
+            return `${dateStr} · ${timeStr}`.toUpperCase();
+        }
+        function escapeHtml(str) {
+            return String(str || "")
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+        function render(data) {
+            if (!data || !data.articles || data.articles.length === 0) {
+                document.getElementById("articles").innerHTML = `
+                    <div class="empty">
+                        <div class="empty-mark">—</div>
+                        <div>No headlines available.</div>
+                    </div>`;
+                return;
+            }
+            const lang = data.language || "es";
+            const labels = {
+                es: { top: "Top Stories", filters: { business: "Negocios", technology: "Tech", startups: "Startups", fintech: "Fintech", general: "General" } },
+                en: { top: "Top Stories", filters: { business: "Business",  technology: "Tech", startups: "Startups", fintech: "Fintech", general: "General" } }
+            };
+            document.getElementById("timestamp").textContent =
+                formatTimestamp(data.generatedAt, lang);
+            const pills = [
+                { key: data.topic, label: labels[lang].filters[data.topic] || data.topic },
+                { key: "country", label: data.countryName }
+            ];
+            document.getElementById("filters").innerHTML = pills
+                .map(p => `<div class="pill ${p.key === data.topic ? "active" : ""}">${p.label}</div>`)
+                .join("");
+            document.getElementById("section-label").innerHTML =
+                `${labels[lang].top}<span style="margin-left:auto;color:var(--ink-faint);">${data.articles.length}</span>`;
+            document.getElementById("articles").innerHTML = data.articles.map(a => `
+                <a class="article" href="${a.url}" target="_blank" rel="noopener">
+                    <div class="article-meta">
+                        <span class="article-source">${escapeHtml(a.source)}</span>
+                        <span class="article-dot"></span>
+                        <span>${timeAgo(a.publishedAt, lang)}</span>
+                    </div>
+                    <div>
+                        <div class="article-title">${escapeHtml(a.title)}</div>
+                        ${a.description ? `<div class="article-desc" style="margin-top:8px;">${escapeHtml(a.description)}…</div>` : ""}
+                    </div>
+                    <div class="article-arrow">↗</div>
+                </a>
+            `).join("");
+        }
+        render(getData());
+    </script>
+</body>
+</html>

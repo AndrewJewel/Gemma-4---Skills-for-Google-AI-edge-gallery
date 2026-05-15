@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LATAM Pulse — Logic</title>
+</head>
+<body>
+    <script>
+        // ====================================================================
+        // LATAM Pulse — headless execution environment
+        // Called by AI Edge Gallery via window.ai_edge_gallery_get_result
+        // ====================================================================
+
+        const TOPIC_QUERIES = {
+            business:   "negocios OR economía OR business",
+            technology: "tecnología OR technology OR software OR AI",
+            startups:   "startup OR founder OR fundraising OR ronda",
+            fintech:    "fintech OR neobank OR pagos OR payments",
+            general:    "LATAM OR Latinoamérica"
+        };
+
+        const COUNTRY_NAMES = {
+            mx:  { code: "mx", name: "México",     domain: "eluniversal.com.mx,elfinanciero.com.mx,expansion.mx" },
+            br:  { code: "br", name: "Brasil",     domain: "globo.com,uol.com.br,folha.uol.com.br" },
+            ar:  { code: "ar", name: "Argentina",  domain: "lanacion.com.ar,clarin.com,infobae.com" },
+            co:  { code: "co", name: "Colombia",   domain: "eltiempo.com,semana.com,larepublica.co" },
+            cl:  { code: "cl", name: "Chile",      domain: "emol.com,latercera.com,df.cl" },
+            pe:  { code: "pe", name: "Perú",       domain: "elcomercio.pe,gestion.pe,rpp.pe" },
+            all: { code: "all", name: "LATAM",     domain: "" }
+        };
+
+        async function fetchNews(topic, country, language, apiKey) {
+            const query = TOPIC_QUERIES[topic] || TOPIC_QUERIES.general;
+            const countryInfo = COUNTRY_NAMES[country] || COUNTRY_NAMES.all;
+
+            const params = new URLSearchParams({
+                q: country === "all"
+                    ? `(${query}) AND (México OR Brasil OR Argentina OR Colombia OR Chile OR Perú OR LATAM)`
+                    : `(${query}) AND ${countryInfo.name}`,
+                language: language,
+                sortBy: "publishedAt",
+                pageSize: "8",
+                apiKey: apiKey
+            });
+
+            if (countryInfo.domain) {
+                params.set("domains", countryInfo.domain);
+            }
+
+            const url = `https://newsapi.org/v2/everything?${params.toString()}`;
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`NewsAPI returned ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            if (data.status !== "ok") {
+                throw new Error(data.message || "Unknown NewsAPI error");
+            }
+
+            return data.articles
+                .filter(a => a.title && a.title !== "[Removed]")
+                .slice(0, 6)
+                .map(a => ({
+                    title: a.title,
+                    source: a.source?.name || "Unknown",
+                    description: (a.description || "").slice(0, 180),
+                    url: a.url,
+                    publishedAt: a.publishedAt,
+                    image: a.urlToImage || null
+                }));
+        }
+
+        function buildWebviewURL(payload) {
+            const encoded = encodeURIComponent(JSON.stringify(payload));
+            return `webview.html?data=${encoded}`;
+        }
+
+        window['ai_edge_gallery_get_result'] = async (data, secret) => {
+            try {
+                if (!secret || secret.trim() === "") {
+                    return JSON.stringify({
+                        error: "Missing NewsAPI key. Get a free one at https://newsapi.org/register"
+                    });
+                }
+
+                const params = JSON.parse(data);
+                const topic    = params.topic    || "business";
+                const country  = params.country  || "all";
+                const language = params.language || "es";
+
+                const articles = await fetchNews(topic, country, language, secret.trim());
+
+                if (articles.length === 0) {
+                    return JSON.stringify({
+                        result: language === "es"
+                            ? "No encontré noticias recientes para esa combinación. Prueba con otro tema o país."
+                            : "No recent news found for that combination. Try another topic or country."
+                    });
+                }
+
+                const payload = {
+                    topic,
+                    country,
+                    language,
+                    countryName: COUNTRY_NAMES[country].name,
+                    articles,
+                    generatedAt: new Date().toISOString()
+                };
+
+                return JSON.stringify({
+                    result: language === "es"
+                        ? `Encontré ${articles.length} noticias de ${COUNTRY_NAMES[country].name}.`
+                        : `Found ${articles.length} articles from ${COUNTRY_NAMES[country].name}.`,
+                    webview: {
+                        url: buildWebviewURL(payload),
+                        aspectRatio: 0.65
+                    }
+                });
+            } catch (e) {
+                console.error(e);
+                return JSON.stringify({
+                    error: `LATAM Pulse failed: ${e.message}`
+                });
+            }
+        };
+    </script>
+</body>
+</html>
